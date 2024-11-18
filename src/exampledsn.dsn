@@ -1,0 +1,38 @@
+(PCB example
+  (parser
+    (string_quote ")
+    (space_in_quoted_tokens on)
+    (host_cad "KiCad")
+    (host_version "7.0.7")
+  )
+  (resolution um 10)
+  (unit um)
+  (structure
+    (layer F.Cu
+      (type signal)
+      (property
+        (index 0)
+      )
+    )
+    (layer B.Cu
+      (type signal)
+      (property
+        (index 1)
+      )
+    )
+  )
+  (placement
+    (component "Package_DIP:DIP-8_W7.62mm"
+      (place U1 76200 76200 front 0)
+    )
+  )
+  (library
+    (padstack "Via[0-1]_800:400_um"
+      (shape
+        (circle F.Cu 800))
+      (shape
+        (circle B.Cu 800))
+      (attach off)
+    )
+  )
+)

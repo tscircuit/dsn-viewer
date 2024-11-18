@@ -43,6 +43,7 @@ function App() {
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
       onPaste={handlePaste}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: we need this for drag and drop
       tabIndex={0}
     >
       {circuitJson ? (
@@ -57,6 +58,29 @@ function App() {
             <p className="text-gray-400">
               or paste DSN content with Ctrl/CMD+V
             </p>
+            {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+            <div
+              className="underline cursor-pointer"
+              onClick={() => {
+                fetch("/exampledsn.dsn")
+                  .then((response) => response.text())
+                  .then((dsnContent) => {
+                    try {
+                      const json = parseDsnToCircuitJson(dsnContent)
+                      setCircuitJson(json)
+                    } catch (err) {
+                      console.error("Failed to parse example DSN:", err)
+                      alert("Failed to parse example DSN file.")
+                    }
+                  })
+                  .catch((err) => {
+                    console.error("Failed to load example DSN:", err)
+                    alert("Failed to load example DSN file.")
+                  })
+              }}
+            >
+              open example
+            </div>
           </div>
           <div className="text-gray-400 text-sm mt-16">
             Unofficial Specctra DSN Parser/Viewer created by{" "}
