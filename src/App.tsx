@@ -13,68 +13,56 @@ function App() {
   const [inDsnSessionMode, setInDsnSessionMode] = useState(false)
   const [sessionFile, setSessionFile] = useState<string | null>(null)
   const [dsnPcbFile, setDsnPcbFile] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const isSessionFileUploaded = Boolean(sessionFile)
   const isDsnPcbFileUploaded = Boolean(dsnPcbFile)
 
-  const processDsnUploadOrPaste = (content: string) => {
-    if (!inDsnSessionMode) {
-      try {
-        const json = parseDsnToCircuitJson(content)
-        setCircuitJson(json)
-      } catch (err) {
-        console.log(err)
-        console.error("Failed to parse DSN content:", err)
-        alert("Failed to parse DSN content. Please check the format.")
+  const processFile = useCallback(async (content: string) => {
+    setError(null)
+
+    try {
+      if (!inDsnSessionMode) {
+        setCircuitJson(parseDsnToCircuitJson(content))
+        return
       }
-      return
-    }
 
-    let dsnPcbContent = dsnPcbFile
-    let sessionContent = sessionFile
+      if (content.trim().startsWith("(pcb")) {
+        setDsnPcbFile(content)
+      } else if (content.trim().startsWith("(session")) {
+        setSessionFile(content)
+      } else {
+        setError("Invalid file format. Please upload a valid DSN PCB or session file.")
+        return
+      }
 
-    if (content.trim().startsWith("(pcb")) {
-      dsnPcbContent = content
-      setDsnPcbFile(content)
-    }
+      const updatedSessionContent = content.trim().startsWith("(session") ? content : sessionFile
+      const updatedPcbContent = content.trim().startsWith("(pcb") ? content : dsnPcbFile
 
-    if (content.trim().startsWith("(session")) {
-      sessionContent = content
-      setSessionFile(content)
-    }
-
-    if (sessionContent && dsnPcbContent) {
-      const dsnPcb = parseDsnToDsnJson(dsnPcbContent) as DsnPcb
-      const dsnSession = parseDsnToDsnJson(sessionContent) as DsnSession
-      try {
+      if (updatedSessionContent && updatedPcbContent) {
+        const dsnPcb = parseDsnToDsnJson(updatedPcbContent) as DsnPcb
+        const dsnSession = parseDsnToDsnJson(updatedSessionContent) as DsnSession
         setCircuitJson(convertDsnSessionToCircuitJson(dsnPcb, dsnSession))
-      } catch (err) {
-        console.log(err)
-        console.error("Failed to convert DSN session to circuit JSON:", err)
-        alert("Failed to convert DSN session to circuit JSON.")
       }
+    } catch (err) {
+      console.error("Processing error:", err)
+      setError("Failed to process file. Please check the format.")
     }
-  }
+  }, [inDsnSessionMode, sessionFile, dsnPcbFile])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    const file = e.dataTransfer.files[0]
-    if (file) {
+    Array.from(e.dataTransfer.files).forEach(file => {
       const reader = new FileReader()
-      reader.onload = async (e) => {
-        const dsnContent = e.target?.result as string
-        processDsnUploadOrPaste(dsnContent)
-      }
+      reader.onload = (e) => processFile(e.target?.result as string)
       reader.readAsText(file)
-    }
-  }, [])
+    })
+  }, [processFile])
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    const dsnContent = e.clipboardData.getData("text")
-    if (dsnContent) {
-      processDsnUploadOrPaste(dsnContent)
-    }
-  }, [])
+    const content = e.clipboardData.getData("text")
+    if (content) processFile(content)
+  }, [processFile])
 
   return (
     <div
@@ -86,79 +74,82 @@ function App() {
       tabIndex={0}
     >
       {circuitJson ? (
-        <PCBViewer circuitJson={circuitJson} height={800} />
+        <div>
+          <button
+            onClick={() => {
+              setCircuitJson(null)
+              setSessionFile(null)
+              setDsnPcbFile(null)
+              setError(null)
+            }}
+            className="mb-4 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md"
+          >
+            Upload Different Files
+          </button>
+          <PCBViewer circuitJson={circuitJson} height={800} />
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-4">
-              Specctra DSN File Viewer
-            </h1>
-            {!inDsnSessionMode && (
-              <>
-                <p className="text-gray-400 mb-2">
-                  Drag and drop a DSN file here
-                </p>
-                <p className="text-gray-400">
-                  or paste DSN content with Ctrl/CMD+V
-                </p>
-              </>
-            )}
-            {inDsnSessionMode && (
-              <>
-                <p className="text-gray-400 mb-2">
-                  Drag and drop or paste a DSN session and original (DSN PCB)
-                  file here
-                </p>
-                <p className="text-gray-400">
-                  You must upload both files to see the results.
-                </p>
-                <p className="text-gray-400">
-                  {isSessionFileUploaded ? "✅" : "❌"} Session file uploaded
-                </p>
-                <p className="text-gray-400">
-                  {isDsnPcbFileUploaded ? "✅" : "❌"} DSN PCB file uploaded
-                </p>
-              </>
-            )}
-            {!inDsnSessionMode && (
-              <div className="flex gap-4 justify-center">
-                <div
-                  className="underline cursor-pointer"
-                  onClick={() => {
-                    fetch("/exampledsn.dsn")
-                      .then((response) => response.text())
-                      .then((dsnContent) => {
-                        try {
-                          const json = parseDsnToCircuitJson(dsnContent)
-                          setCircuitJson(json)
-                        } catch (err) {
-                          console.error("Failed to parse example DSN:", err)
-                          alert("Failed to parse example DSN file.")
-                        }
-                      })
-                      .catch((err) => {
-                        console.error("Failed to load example DSN:", err)
-                        alert("Failed to load example DSN file.")
-                      })
-                  }}
-                >
-                  open example
-                </div>
-                <div
-                  className="underline cursor-pointer"
-                  onClick={() => {
-                    setInDsnSessionMode(true)
-                  }}
-                >
-                  upload session
-                </div>
+          <div className="text-center max-w-2xl w-full">
+            <h1 className="text-3xl font-bold mb-4">Specctra DSN File Viewer</h1>
+            
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-md text-red-300">
+                {error}
               </div>
             )}
+
+            {inDsnSessionMode ? (
+              <div className="space-y-4">
+                <p className="text-gray-400 mb-2">
+                  Drag and drop or paste both required files:
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 bg-gray-800/50 p-3 rounded-md">
+                    <span className={isSessionFileUploaded ? "text-green-500" : "text-red-500"}>
+                      {isSessionFileUploaded ? "✅" : "❌"}
+                    </span>
+                    <span className="text-gray-300">Session File</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-gray-800/50 p-3 rounded-md">
+                    <span className={isDsnPcbFileUploaded ? "text-green-500" : "text-red-500"}>
+                      {isDsnPcbFileUploaded ? "✅" : "❌"}
+                    </span>
+                    <span className="text-gray-300">DSN PCB File</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-400 mb-2">Drag and drop a DSN file here</p>
+                <p className="text-gray-400">or paste DSN content with Ctrl/CMD+V</p>
+                <div className="flex gap-4 justify-center mt-6">
+                  <button
+                    className="underline hover:text-blue-400"
+                    onClick={() => {
+                      fetch("/exampledsn.dsn")
+                        .then((response) => response.text())
+                        .then(processFile)
+                        .catch(() => setError("Failed to load example DSN file."))
+                    }}
+                  >
+                    open example
+                  </button>
+                  <button
+                    className="underline hover:text-blue-400"
+                    onClick={() => setInDsnSessionMode(true)}
+                  >
+                    upload session
+                  </button>
+                </div>
+              </>
+            )}
           </div>
+
           <div className="text-gray-400 text-sm mt-16">
             Unofficial Specctra DSN Parser/Viewer created by{" "}
             <a
-              className="underline"
+              className="underline hover:text-blue-400"
               href="https://github.com/tscircuit/tscircuit"
             >
               tscircuit
