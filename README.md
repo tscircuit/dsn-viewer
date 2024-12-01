@@ -1,5 +1,8 @@
 # Specctra DSN Viewer
 
+![2024-12-01_14-48](https://github.com/user-attachments/assets/2536cb2a-3041-4606-95c1-ef9ea87cae5b)
+
+
 A web-based viewer for Specctra DSN files, built with React and TypeScript. This tool allows you to visualize PCB (Printed Circuit Board) designs by dragging and dropping Specctra DSN files directly into your browser.
 
 ## Features
