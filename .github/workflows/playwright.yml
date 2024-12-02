@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,11 +26,8 @@ jobs:
       - name: Build project
         run: bun run build
 
-      - name: Run specific test file
-        run: bunx playwright test playwright-tests/dsn-viewer.spec.ts
-        env:
-          CI: true
-          DEBUG: pw:webserver
+      - name: Run Playwright tests
+        run: bunx playwright test
 
       - uses: actions/upload-artifact@v4
         if: always()
