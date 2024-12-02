@@ -8,8 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "playwright": "bunx playwright test",
-    "playwright:update": "bunx playwright test --update-snapshots"
+    "preview:test": "vite preview --port 5173 --strictPort",
+    "playwright": "playwright test",
+    "playwright:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@tscircuit/pcb-viewer": "^1.10.17",
