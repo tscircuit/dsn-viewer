@@ -15,7 +15,7 @@
   "dependencies": {
     "@tscircuit/pcb-viewer": "^1.10.17",
     "autoprefixer": "^10.4.20",
-    "dsn-converter": "^0.0.45",
+    "dsn-converter": "^0.0.46",
     "nanoid": "^5.0.9",
     "postcss": "^8.4.49",
     "react": "^18.3.1",
